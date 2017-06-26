@@ -1,0 +1,2 @@
+<b>Databasing!</b>\n
+This is a simple program and interface that will keep track of the Kanji that I've studied and my word of the day in Japanese and German using the Perl DBI. In the near future, I would also like to use it to interface with C, using XML and, by extension, libxml.
