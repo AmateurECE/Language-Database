@@ -35,10 +35,10 @@ print "Perl DBI Interface v1.0\n",
     "Exit\n",
     "***********************\n";
 my $ans = <STDIN>;
-$ans =~ s/([A-Z])/\L$1/;
+$ans =~ s/([A-Z])/\L$1/g;
 my $file;
 my $action;
-if ($ans =~ m/open/) {
+if ($ans =~ m/o.*/) {
 
     do {
 	print "Please enter the name of a valid file you would like to open.\n";
@@ -47,14 +47,14 @@ if ($ans =~ m/open/) {
     } while (!-e "$wd/$file");
     $action = 'o';
 
-} elsif ($ans =~ m/create/) {
+} elsif ($ans =~ m/c.*/) {
 
     print "Please enter the name of a file you would like to create.\n";
     $file = <STDIN>;
     chomp $file;
     $action = 'c';
 
-} elsif ($ans =~ m/exit/) {
+} elsif ($ans =~ m/e.*/) {
 
     exit 0;
 
@@ -77,15 +77,44 @@ print "Please enter SQLite commands, terminated by the string 'EOF'.\n",
     while (1) {
 
 	my $sql = <STDIN>;
+	$sql =~ s/[\n]//g;
 	$sql =~ s/EOF//;
 	last if $sql =~ m/exit/;
 	my $sth = $dbh->prepare($sql);
 	$sth->execute();
+	fetch($sth) if $sql =~ m/SELECT/;
 	print "Executed normally.\n"
 
     }
 }
 $dbh->disconnect();
 print "Exiting.\n";
+
+################################################################################
+# Subroutines
+###
+
+################################################################################
+# FUNCTION:	    fetch
+#
+# DESCRIPTION:	    Prints the result of an SQLite statement that uses the
+#		    SELECT keyword.
+#
+# ARGUMENTS:	    sth: (Scalar) -- SQLite statement
+#
+# RETURN:	    void
+#
+# NOTES:	    prints to STDOUT.
+###
+sub fetch {
+
+    my $sth = shift;
+    while (my @row = $sth->fetchrow_array) {
+	foreach my $str (@row) {
+	    print "\t$str\n";
+	}
+    }
+
+}
 
 ################################################################################
