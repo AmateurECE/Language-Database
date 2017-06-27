@@ -21,6 +21,15 @@ use warnings;
 use DBI;
 
 ################################################################################
+# Formats
+###
+
+format ROW =
+@< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$day, $word, $meaning
+.
+
+################################################################################
 # Main
 ###
 
@@ -67,7 +76,6 @@ if ($ans =~ m/o.*/) {
 
 my $dbh = DBI->connect("$dbn:$file", "", "", {
     PrintError	=> 1,
-    RaiseError => 1,
 		       });
 print "Please enter SQLite commands, terminated by the string 'EOF'.\n",
     "When you have finished, please enter exit.\n";
@@ -82,7 +90,7 @@ print "Please enter SQLite commands, terminated by the string 'EOF'.\n",
 	last if $sql =~ m/exit/;
 	my $sth = $dbh->prepare($sql);
 	$sth->execute();
-	fetch($sth) if $sql =~ m/SELECT/;
+	fetch($sth, $dbh) if $sql =~ m/SELECT/;
 	print "Executed normally.\n"
 
     }
@@ -108,13 +116,56 @@ print "Exiting.\n";
 ###
 sub fetch {
 
-    my $sth = shift;
-    while (my @row = $sth->fetchrow_array) {
-	foreach my $str (@row) {
-	    print "\t$str\n";
-	}
+    my($sth, $dbh) = @_;
+    my $output;
+    while (my @rows = $sth->fetchrow_array) {
+	my $str = join(", ", @rows);
+	$output .= "\n" . $str;
     }
 
+    select(STDOUT);
+    $~ = "ROW";
+    my $header = get_header($dbh);
+    
+    write $header;
+    write $output;
+}
+
+################################################################################
+# FUNCTION:	    get_header
+#
+# DESCRIPTION:	    Returns a string representing the header for a table --
+#		    containing the names of all of the columns.
+#
+# ARGUMENTS:	    dbh: (Scalar) -- Database handle
+#
+# RETURN:	    Scalar -- header of the table
+#
+# NOTES:	    
+###
+sub get_header {
+
+    my $dbh = shift;
+    my $str = <<'SQL';
+SELECT sql FROM sqlite_master
+WHERE type IS 'table';
+SQL
+    my $sth = $dbh->prepare($str);
+    $sth->execute();
+    while (my @rows = $sth->fetchrow_array) {
+	foreach my $row (@rows) {
+	    $row =~ m/(\(.*\))/;
+	    my @lines = split(",", $1);
+
+	    my @cols;
+	    foreach my $line (@lines) {
+		$line =~ m/([a-z]+)/;
+		push @cols, $1;
+	    }
+	    my $header = join(", ", @cols);
+	}
+    }
+    return $header;
 }
 
 ################################################################################
